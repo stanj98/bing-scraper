@@ -79,8 +79,28 @@ func scrapeClientRequest {
 
 }
 
-func BingScrape {
-
+func BingScrape (searchTerm, country string, pages, count, backoff int)([]SearchResult, error) {
+	results := []SearchResult{}
+	bingPages, err := buildBingURLs(searchTerm, country, pages, count)
+	if err != nil {
+		return nil, err
+	}
+	for _, page := range bindPages {
+		rank := len(results)
+		res, err := scrapeClientRequest(page)
+		if err != nil {
+			return nil, err
+		}
+		data, err := bingResultParser(res, rank)
+		if err != nil {
+			return nil, err
+		}
+		for _, result := range data {
+			results = append(results, result)
+		}
+		//backoff
+		time.Sleep(time.Duration(backoff)*time.Second)
+	}
 }
 
 func bingResultParser {
@@ -88,5 +108,13 @@ func bingResultParser {
 }
 
 func main {
+	res, err := BingScrape("stanley", "com", 2, 30, 30)
+	if err != nil {
+		for _, res := range res {
+			fmt.Println(res)
+		}
+	} else {
+		fmt.Println(err)
+	}
 
 }
