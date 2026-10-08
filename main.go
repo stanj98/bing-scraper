@@ -67,7 +67,9 @@ var userAgents = []string {
 }
 
 func randomUserAgent() string {
-
+	rand.Seed(time.Now().Unix())
+	randNum := rand.Int() % len(userAgents)
+	return userAgents[randNum]
 }
 
 //construct the URL using params from multiple sources
@@ -95,11 +97,33 @@ func firstParameter(number, count int) int {
 	return number * count + 1
 }
 
-func scrapeClientRequest {
-
+func getScrapeClient(proxyString interface{}) *http.Client {
+	switch V := proxyString.(type) {
+	case string:
+		proxyURL, _ := url.Parse(V)
+		return &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
+	default:
+		return &http.Client{}
+	}
 }
 
-func BingScrape (searchTerm, country string, pages, count, backoff int)([]SearchResult, error) {
+func scrapeClientRequest (searchURL string, proxyString interface{}) (*http.Response, error) {
+	//will use baseClient to make request to search URL
+	baseClient := getScrapeClient(proxyString)
+	req, _ := http.NewRequest("GET", searchURL, nil)
+	req.Header.Set("User-Agent", randomUserAgent())
+	res, err := baseClient.Do(req)
+	if res.StatusCode != 200 {
+		err := fmt.Errorf("scraper received a non-200 status code, suggesting a ban")
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func BingScrape (searchTerm, country, string, proxyString interface{}, pages, count, backoff int)([]SearchResult, error) {
 	results := []SearchResult{}
 	bingPages, err := buildBingURLs(searchTerm, country, pages, count)
 	if err != nil {
@@ -107,7 +131,7 @@ func BingScrape (searchTerm, country string, pages, count, backoff int)([]Search
 	}
 	for _, page := range bindPages {
 		rank := len(results)
-		res, err := scrapeClientRequest(page)
+		res, err := scrapeClientRequest(page, proxyString)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +153,7 @@ func bingResultParser {
 }
 
 func main {
-	res, err := BingScrape("stanley", "com", 2, 30, 30)
+	res, err := BingScrape("stanley", "com", nil, 2, 30, 30)
 	if err != nil {
 		for _, res := range res {
 			fmt.Println(res)
